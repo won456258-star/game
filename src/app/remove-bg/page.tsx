@@ -1,102 +1,102 @@
-"use client"; // 사용자의 키보드 입력을 받아야 하므로 필수!
+"use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState } from "react";
+// [수정된 부분 1] 중괄호 { }를 써서 정확한 이름을 가져옵니다.
+import { removeBackground } from "@imgly/background-removal"; 
 import Image from "next/image";
 
-export default function GamePage() {
-  // 1. 캐릭터의 위치 상태 (x: 가로, y: 세로)
-  const [position, setPosition] = useState({ x: 50, y: 50 });
-  // 2. 캐릭터 이미지 주소
-  const [characterSrc, setCharacterSrc] = useState<string | null>(null);
+export default function RemoveBgPage() {
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [processedImage, setProcessedImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 3. 키보드 입력을 감지해서 캐릭터를 움직이는 함수
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const step = 10; // 한 번에 움직이는 거리 (픽셀)
-
-      setPosition((prev) => {
-        let newX = prev.x;
-        let newY = prev.y;
-
-        // 방향키에 따라 좌표 변경
-        if (e.key === "ArrowUp") newY -= step;
-        if (e.key === "ArrowDown") newY += step;
-        if (e.key === "ArrowLeft") newX -= step;
-        if (e.key === "ArrowRight") newX += step;
-
-        return { x: newX, y: newY };
-      });
-    };
-
-    // 브라우저에 "키보드 눌림" 감시자 등록
-    window.addEventListener("keydown", handleKeyDown);
-
-    // 페이지를 나갈 때 감시자 제거 (청소)
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  // 4. 파일 업로드 처리 함수
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      setCharacterSrc(url);
+      setImageSrc(url);
+      setProcessedImage(null);
+    }
+  };
+
+  const handleRemoveBackground = async () => {
+    if (!imageSrc) return;
+
+    setIsLoading(true);
+    try {
+      // [수정된 부분 2] 함수 이름도 removeBackground로 변경되었습니다.
+      const blob = await removeBackground(imageSrc);
+      const url = URL.createObjectURL(blob);
+      setProcessedImage(url);
+    } catch (error) {
+      console.error("배경 제거 실패:", error);
+      alert("배경 제거 중 오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full h-screen bg-green-100 relative overflow-hidden">
-      {/* --- 게임 UI 오버레이 (버튼 등) --- */}
-      <div className="absolute top-4 left-4 z-10 flex gap-4">
-        {/* 캐릭터 업로드 버튼 */}
-        <label className="bg-white px-4 py-2 rounded-lg shadow-md cursor-pointer hover:bg-gray-50 border border-gray-200 font-bold text-gray-700">
-          📂 캐릭터 불러오기
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gray-50 dark:bg-black">
+      <h1 className="text-3xl font-bold mb-8 text-black dark:text-white">
+        AI 이미지 배경 제거기 🪄
+      </h1>
+
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+        <div className="mb-6">
+          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            이미지 파일 선택 (DALL-E 생성 이미지 등)
+          </label>
           <input
             type="file"
             accept="image/*"
-            className="hidden"
-            onChange={handleFileUpload}
-          />
-        </label>
-
-        {/* 배경 제거 도구로 이동하는 버튼 */}
-        <Link
-          href="/remove-bg"
-          className="bg-blue-600 px-4 py-2 rounded-lg shadow-md text-white font-bold hover:bg-blue-700"
-        >
-          🪄 배경 제거하러 가기
-        </Link>
-      </div>
-
-      <div className="absolute top-4 right-4 z-10 bg-black/50 text-white px-4 py-2 rounded-full">
-        키보드 방향키로 움직여보세요! 🎮
-      </div>
-
-      {/* --- 게임 스테이지 (캐릭터) --- */}
-      {characterSrc ? (
-        <div
-          className="absolute transition-all duration-75" // 부드러운 움직임 효과
-          style={{
-            left: `${position.x}px`,
-            top: `${position.y}px`,
-            width: "100px", // 캐릭터 크기
-            height: "100px",
-          }}
-        >
-          <Image
-            src={characterSrc}
-            alt="My Character"
-            fill
-            className="object-contain drop-shadow-xl" // 그림자 효과 추가
+            onChange={handleImageUpload}
+            className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"
           />
         </div>
-      ) : (
-        // 캐릭터가 없을 때 안내 문구
-        <div className="flex items-center justify-center w-full h-full text-gray-400">
-          <p className="text-xl font-bold">좌측 상단 버튼을 눌러 캐릭터를 불러오세요!</p>
-        </div>
-      )}
+
+        {imageSrc && (
+          <div className="mb-6">
+            <p className="text-sm text-gray-500 mb-2">원본 이미지:</p>
+            <div className="relative w-full h-64 border rounded-lg overflow-hidden">
+              <Image
+                src={imageSrc}
+                alt="Original"
+                fill
+                style={{ objectFit: "contain" }}
+              />
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={handleRemoveBackground}
+          disabled={!imageSrc || isLoading}
+          className={`w-full py-3 px-4 rounded-lg text-white font-bold transition-colors ${
+            !imageSrc || isLoading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
+          }`}
+        >
+          {isLoading ? "배경 제거 중... (시간이 좀 걸려요)" : "배경 제거 실행!"}
+        </button>
+
+        {processedImage && (
+          <div className="mt-8">
+            <p className="text-sm text-green-600 font-bold mb-2">
+              완성된 이미지 (우클릭해서 저장하세요):
+            </p>
+            <div className="relative w-full h-64 border-2 border-green-400 border-dashed rounded-lg overflow-hidden bg-[url('https://t3.ftcdn.net/jpg/02/09/80/29/360_F_209802927_I0C9a2a9a0d8a0f9a0b.jpg')] bg-cover">
+              <Image
+                src={processedImage}
+                alt="Processed"
+                fill
+                style={{ objectFit: "contain" }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
