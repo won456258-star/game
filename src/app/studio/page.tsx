@@ -1,11 +1,15 @@
+// src/app/studio/page.tsx (MODIFIED FILE)
 'use client'
 
 import { useState } from 'react'
 import { Message, GameSpec } from '@/lib/types'
-// 💥 1. api.ts 대신 actions.ts에서 import 합니다!
 import { sendMessageToAI } from '@/lib/actions' 
 import ChatPanel from '@/components/studio/ChatPanel'
 import GamePreview from '@/components/studio/GamePreview'
+
+// --- MOCKing: 실제 게임 ID가 필요합니다. ---
+const MOCK_GAME_NAME = "my-ai-game";
+// ------------------------------------------
 
 export default function StudioPage() {
   const [messages, setMessages] = useState<Message[]>([
@@ -22,18 +26,17 @@ export default function StudioPage() {
     setMessages(newMessages)
 
     try {
-      // 💥 2. Server Action을 직접 호출합니다! (fetch가 필요 없습니다)
-      const aiResponse = await sendMessageToAI(newMessages, gameSpec)
+      // 💥 MOCK_GAME_NAME 인자를 추가하여 호출합니다.
+      const aiResponse = await sendMessageToAI(newMessages, gameSpec, MOCK_GAME_NAME) 
 
       setMessages(prev => [...prev, aiResponse.aiMessage])
       
-      if (aiResponse.updatedSpec) {
-        setGameSpec(aiResponse.updatedSpec)
-      }
-      
+      // NOTE: 파이썬 통합 로직은 generatedCode와 gameData를 직접 반환합니다.
       if (aiResponse.generatedCode) {
         setGameCode(aiResponse.generatedCode)
       }
+      
+      // gameSpec 업데이트 로직은 필요에 따라 actions.ts에서 추가 구현해야 합니다.
 
     } catch (error) {
       console.error(error)
